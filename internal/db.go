@@ -43,7 +43,7 @@ func ConnectDatabase() {
 		fmt.Println("Error Creating Table ")
 		panic(err)
 	}
-	//
+
 	// phone_numbers := []string{"1234567890", "123 456 7891", "(123) 456 7892", "(123) 456-7893", "123-456-7894", "123-456-7890", "1234567892", "(123)456-7892"}
 	//
 	// for _, ph := range phone_numbers {
@@ -59,11 +59,6 @@ func ConnectDatabase() {
 
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	for i := range phones {
-		npH := normalizer.Normalize(phones[i].Number)
-		phones[i].Number = npH
 	}
 
 	err = UpdateDb(db, phones)
@@ -136,19 +131,77 @@ func GetAllPhone(db *sql.DB) ([]Phone, error) {
 	return p, nil
 }
 
+func CheckPhone(db *sql.DB, ph_num string) (*Phone, error) {
+
+	var phone_number Phone
+
+	query := `SELECT id , value from phone_numbers WHERE value=$1`
+
+	err := db.QueryRow(query, ph_num).Scan(&phone_number.Id, &phone_number.Number)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &phone_number, err
+}
+
 func UpdateDb(db *sql.DB, phones []Phone) error {
 
 	for _, ph := range phones {
 
-		_, err := db.Exec(`UPDATE  phone_numbers set value= $1 where id =$2`, ph.Number, ph.Id)
+		new_ph := normalizer.Normalize(ph.Number)
 
-		if err != nil {
-			return err
+		if new_ph == ph.Number {
+			fmt.Println("No operation performed", new_ph)
+		} else {
+			num, err := CheckPhone(db, new_ph)
+
+			if err != nil {
+				panic(err)
+			}
+
+			if num != nil {
+
+				if num.Id != ph.Id {
+
+					err := DeleteRecord(db, ph.Id)
+					if err != nil {
+						panic(err)
+					}
+
+				}
+			}
+
+			_, err = db.Exec(`UPDATE  phone_numbers set value= $1 where id =$2`, new_ph, ph.Id)
+
+			if err != nil {
+				return err
+			}
+			fmt.Println("Updated Tables Succefully...", new_ph)
+
 		}
 
 	}
 
-	fmt.Println("Updated Tables Succefully...")
+	return nil
+
+}
+
+func DeleteRecord(db *sql.DB, id int) error {
+
+	query := `DELETE FROM phone_numbers WHERE id=$1`
+
+	_, err := db.Exec(query, id)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Deleting Phone Number with id ", id)
 
 	return nil
 
