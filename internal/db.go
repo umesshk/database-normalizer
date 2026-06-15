@@ -41,7 +41,8 @@ func ConnectDatabase() {
 	phone_numbers := []string{"1234567890", "123 456 7891", "(123) 456 7892", "(123) 456-7893", "123-456-7894", "123-456-7890", "1234567892", "(123)456-7892"}
 
 	for _, ph := range phone_numbers {
-		_, err := InsertData(db, ph)
+		i, err := InsertData(db, ph)
+		fmt.Println("id=", i)
 		if err != nil {
 			panic(err)
 		}
@@ -65,10 +66,10 @@ func CreatePhoneTable(db *sql.DB) error {
 }
 
 func InsertData(db *sql.DB, phone_num string) (int, error) {
-	query := `INSERT INTO phone_numbers (value) VALUES($1)`
+	query := `INSERT INTO phone_numbers (value) VALUES($1) RETURNING id `
 
 	var id int
-	_, err := db.Exec(query, phone_num)
+	err := db.QueryRow(query, phone_num).Scan(&id)
 
 	return id, err
 }
