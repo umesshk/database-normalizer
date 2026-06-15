@@ -1,0 +1,36 @@
+package database
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"os"
+
+	_ "github.com/lib/pq"
+)
+
+func ConnectDatabase() {
+
+	var (
+		user     = os.Getenv("DB_USER")
+		password = os.Getenv("DB_PASS")
+		host     = os.Getenv("DB_HOST")
+		port     = os.Getenv("DB_PORT")
+		dbname   = os.Getenv("DB_DATABSE")
+	)
+
+	conn_url := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	db, err := sql.Open("postgres", conn_url)
+
+	if err != nil {
+		fmt.Println("Error connecting")
+		panic(err)
+	}
+	if err := db.Ping(); err != nil {
+		log.Fatal("Error Reaching database", err)
+	}
+
+	fmt.Println("Connected Succefully")
+	defer db.Close()
+
+}

@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"regexp"
-
+	"github.com/joho/godotenv"
 	database "github.com/umesshk/database-normalizer/internal"
+	"regexp"
 )
 
 func Normalize(phone string) string {
@@ -26,6 +26,12 @@ func Normalize(phone string) string {
 // }
 
 func main() {
+	err := godotenv.Load()
+
+	if err != nil {
+		panic("Error Loading env variable")
+	}
+
 	fmt.Println("Helo World")
 	database.ConnectDatabase()
 }
