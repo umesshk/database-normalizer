@@ -7,13 +7,7 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
-	"github.com/umesshk/database-normalizer/normalizer"
 )
-
-type Phone struct {
-	Id     int
-	Number string
-}
 
 func ConnectDatabase() {
 
@@ -43,31 +37,16 @@ func ConnectDatabase() {
 		fmt.Println("Error Creating Table ")
 		panic(err)
 	}
-	//
-	// phone_numbers := []string{"1234567890", "123 456 7891", "(123) 456 7892", "(123) 456-7893", "123-456-7894", "123-456-7890", "1234567892", "(123)456-7892"}
-	//
-	// for _, ph := range phone_numbers {
-	// 	i, err := InsertData(db, ph)
-	// 	fmt.Println("id=", i)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// }
-	//
 
-	phones, err := GetAllPhone(db)
+	phone_numbers := []string{"1234567890", "123 456 7891", "(123) 456 7892", "(123) 456-7893", "123-456-7894", "123-456-7890", "1234567892", "(123)456-7892"}
 
-	if err != nil {
-		log.Fatal(err)
+	for _, ph := range phone_numbers {
+		i, err := InsertData(db, ph)
+		fmt.Println("id=", i)
+		if err != nil {
+			panic(err)
+		}
 	}
-
-	fmt.Println(phones)
-	for i := range phones {
-		npH := normalizer.Normalize(phones[i].Number)
-		phones[i].Number = npH
-	}
-
-	err := UpdateDb(db, phones)
 
 	defer db.Close()
 
@@ -95,7 +74,7 @@ func InsertData(db *sql.DB, phone_num string) (int, error) {
 	return id, err
 }
 
-func GetPhone(db *sql.DB, id int) (error, string) {
+func GetPhone(dg *sql.DB, id int) {
 
 	var phone_number string
 
@@ -103,32 +82,4 @@ func GetPhone(db *sql.DB, id int) (error, string) {
 
 	err := db.QueryRow(query, id).Scan(&phone_number)
 
-	return err, phone_number
-}
-
-func GetAllPhone(db *sql.DB) ([]Phone, error) {
-
-	row, err := db.Query(`SELECT id,value from phone_numbers `)
-	if err != nil {
-		return nil, err
-	}
-
-	var p []Phone
-
-	for row.Next() {
-		var ph Phone
-		err := row.Scan(&ph.Id, &ph.Number)
-
-		if err != nil {
-			return nil, err
-		}
-
-		p = append(p, ph)
-
-	}
-	if err := row.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	return p, nil
 }
