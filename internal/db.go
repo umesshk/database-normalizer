@@ -15,7 +15,11 @@ type Phone struct {
 	Number string
 }
 
-func ConnectDatabase() {
+type Database struct {
+	DB *sql.DB
+}
+
+func ConnectDatabase() (*Database, error) {
 
 	var (
 		user     = os.Getenv("DB_USER")
@@ -29,84 +33,84 @@ func ConnectDatabase() {
 	db, err := sql.Open("postgres", conn_url)
 
 	if err != nil {
-		fmt.Println("Error connecting")
-		panic(err)
+		return &Database{}, err
 	}
+
 	if err := db.Ping(); err != nil {
 		log.Fatal("Error Reaching database")
 		panic(err)
 	}
 
-	fmt.Println("Connected Succefully")
+	fmt.Println("Connected Succefully...")
 
-	if err := CreatePhoneTable(db); err != nil {
-		fmt.Println("Error Creating Table ")
-		panic(err)
-	}
-
-	// phone_numbers := []string{"1234567890", "123 456 7891", "(123) 456 7892", "(123) 456-7893", "123-456-7894", "123-456-7890", "1234567892", "(123)456-7892"}
-	//
-	// for _, ph := range phone_numbers {
-	// 	i, err := InsertData(db, ph)
-	// 	fmt.Println("id=", i)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// }
-	//
-
-	phones, err := GetAllPhone(db)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = UpdateDb(db, phones)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer db.Close()
+	return &Database{db}, nil
 
 }
 
-func CreatePhoneTable(db *sql.DB) error {
+func (d *Database) Close() error {
+	return d.DB.Close()
+}
 
+func (d *Database) SeedData() error {
+
+	fmt.Println("Inserting Data...")
+
+	phone_numbers := []string{"1234567890", "123 456 7891", "(123) 456 7892", "(123) 456-7893", "123-456-7894", "123-456-7890", "1234567892", "(123)456-7892"}
+
+	for _, ph := range phone_numbers {
+		i, err := d.InsertData(ph)
+		fmt.Println("Inserted Data with id=", i)
+		if err != nil {
+			return err
+		}
+	}
+
+	fmt.Println("Data Inserted...")
+
+	return nil
+
+}
+
+func (d *Database) CreatePhoneTable() error {
 	query := `CREATE TABLE IF NOT EXISTS phone_numbers ( 
 					id   SERIAL PRIMARY KEY,
 					value varchar(225)
 	);`
 
-	_, err := db.Exec(query)
+	_, err := d.DB.Exec(query)
 
+	if err == nil {
+		fmt.Println("Created Table Phone phone_numbers...")
+	}
 	return err
 
 }
 
-func InsertData(db *sql.DB, phone_num string) (int, error) {
+func (d *Database) InsertData(phone_num string) (int, error) {
+
 	query := `INSERT INTO phone_numbers (value) VALUES($1) RETURNING id `
 
 	var id int
-	err := db.QueryRow(query, phone_num).Scan(&id)
+	err := d.DB.QueryRow(query, phone_num).Scan(&id)
 
 	return id, err
 }
 
-func GetPhone(db *sql.DB, id int) (error, string) {
+func (d *Database) GetPhone(id int) (error, string) {
 
 	var phone_number string
 
 	query := `SELECT value from phone_numbers WHERE id=$1`
 
-	err := db.QueryRow(query, id).Scan(&phone_number)
+	err := d.DB.QueryRow(query, id).Scan(&phone_number)
 
 	return err, phone_number
 }
 
-func GetAllPhone(db *sql.DB) ([]Phone, error) {
+func (d *Database) GetAllPhone() ([]Phone, error) {
 
-	row, err := db.Query(`SELECT id,value from phone_numbers `)
+	fmt.Println("Fetching Alll Numbers form Database...")
+	row, err := d.DB.Query(`SELECT id,value from phone_numbers `)
 	if err != nil {
 		return nil, err
 	}
@@ -128,16 +132,17 @@ func GetAllPhone(db *sql.DB) ([]Phone, error) {
 		log.Fatal(err)
 	}
 
+	fmt.Println("Data Fetched...")
 	return p, nil
 }
 
-func CheckPhone(db *sql.DB, ph_num string) (*Phone, error) {
-
+func (d *Database) CheckPhone(ph_num string) (*Phone, error) {
+	fmt.Printf("Checking Phone Number : %s...", ph_num)
 	var phone_number Phone
 
 	query := `SELECT id , value from phone_numbers WHERE value=$1`
 
-	err := db.QueryRow(query, ph_num).Scan(&phone_number.Id, &phone_number.Number)
+	err := d.DB.QueryRow(query, ph_num).Scan(&phone_number.Id, &phone_number.Number)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -149,16 +154,19 @@ func CheckPhone(db *sql.DB, ph_num string) (*Phone, error) {
 	return &phone_number, err
 }
 
-func UpdateDb(db *sql.DB, phones []Phone) error {
+func (d *Database) UpdateDb(phones []Phone) error {
+
+	fmt.Println("Updating Database...")
 
 	for _, ph := range phones {
 
 		new_ph := normalizer.Normalize(ph.Number)
 
 		if new_ph == ph.Number {
-			fmt.Println("No operation performed", new_ph)
+			fmt.Println("No operation performed...", new_ph)
 		} else {
-			num, err := CheckPhone(db, new_ph)
+
+			num, err := d.CheckPhone(new_ph)
 
 			if err != nil {
 				panic(err)
@@ -168,7 +176,7 @@ func UpdateDb(db *sql.DB, phones []Phone) error {
 
 				if num.Id != ph.Id {
 
-					err := DeleteRecord(db, ph.Id)
+					err := d.DeleteRecord(ph.Id)
 					if err != nil {
 						panic(err)
 					}
@@ -176,7 +184,7 @@ func UpdateDb(db *sql.DB, phones []Phone) error {
 				}
 			}
 
-			_, err = db.Exec(`UPDATE  phone_numbers set value= $1 where id =$2`, new_ph, ph.Id)
+			_, err = d.DB.Exec(`UPDATE  phone_numbers set value= $1 where id =$2`, new_ph, ph.Id)
 
 			if err != nil {
 				return err
@@ -191,18 +199,29 @@ func UpdateDb(db *sql.DB, phones []Phone) error {
 
 }
 
-func DeleteRecord(db *sql.DB, id int) error {
+func (d *Database) DeleteRecord(id int) error {
 
 	query := `DELETE FROM phone_numbers WHERE id=$1`
 
-	_, err := db.Exec(query, id)
+	_, err := d.DB.Exec(query, id)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Deleting Phone Number with id ", id)
+	fmt.Println("Deleted Phone Number with id ", id)
 
 	return nil
+
+}
+
+func (d *Database) ResetDatabase() error {
+	query := `DROP TABLE phone_numbers`
+
+	_, err := d.DB.Exec(query)
+
+	fmt.Println("Database Reseted...")
+
+	return err
 
 }
