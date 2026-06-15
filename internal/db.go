@@ -38,9 +38,13 @@ func ConnectDatabase() {
 		panic(err)
 	}
 
-	if err := InsertData(db); err != nil {
-		fmt.Println("Error Creating Table ")
-		panic(err)
+	phone_numbers := []string{"1234567890", "123 456 7891", "(123) 456 7892", "(123) 456-7893", "123-456-7894", "123-456-7890", "1234567892", "(123)456-7892"}
+
+	for _, ph := range phone_numbers {
+		_, err := InsertData(db, ph)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	defer db.Close()
@@ -60,18 +64,11 @@ func CreatePhoneTable(db *sql.DB) error {
 
 }
 
-func InsertData(db *sql.DB) error {
-	query := `INSERT INTO phone_numbers (value) VALUES
-		('1234567890'),
-		('123 456 7891'),
-		('(123) 456 7892'),
-		('(123) 456-7893'),
-		('123-456-7894'),
-		('123-456-7890'),
-		('1234567892'),
-		('(123)456-7892')`
+func InsertData(db *sql.DB, phone_num string) (int, error) {
+	query := `INSERT INTO phone_numbers (value) VALUES($1)`
 
-	_, err := db.Exec(query)
+	var id int
+	_, err := db.Exec(query, phone_num)
 
-	return err
+	return id, err
 }
