@@ -61,13 +61,16 @@ func ConnectDatabase() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(phones)
 	for i := range phones {
 		npH := normalizer.Normalize(phones[i].Number)
 		phones[i].Number = npH
 	}
 
-	err := UpdateDb(db, phones)
+	err = UpdateDb(db, phones)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	defer db.Close()
 
@@ -131,4 +134,22 @@ func GetAllPhone(db *sql.DB) ([]Phone, error) {
 	}
 
 	return p, nil
+}
+
+func UpdateDb(db *sql.DB, phones []Phone) error {
+
+	for _, ph := range phones {
+
+		_, err := db.Exec(`UPDATE  phone_numbers set value= $1 where id =$2`, ph.Number, ph.Id)
+
+		if err != nil {
+			return err
+		}
+
+	}
+
+	fmt.Println("Updated Tables Succefully...")
+
+	return nil
+
 }
