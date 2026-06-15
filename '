@@ -61,7 +61,7 @@ func CreatePhoneTable(db *sql.DB) error {
 }
 
 func InsertData(db *sql.DB) error {
-	query := `INSERT INTO phone_numbers (value) VALUES
+	query := `INSERT INTO phone_numbers (value) VALUES(
 		('1234567890'),
 		('123 456 7891'),
 		('(123) 456 7892'),
