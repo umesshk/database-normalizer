@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/joho/godotenv"
 	database "github.com/umesshk/database-normalizer/internal"
 	"regexp"
@@ -32,6 +31,5 @@ func main() {
 		panic("Error Loading env variable")
 	}
 
-	fmt.Println("Helo World")
 	database.ConnectDatabase()
 }

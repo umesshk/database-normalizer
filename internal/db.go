@@ -27,10 +27,30 @@ func ConnectDatabase() {
 		panic(err)
 	}
 	if err := db.Ping(); err != nil {
-		log.Fatal("Error Reaching database", err)
+		log.Fatal("Error Reaching database")
+		panic(err)
 	}
 
 	fmt.Println("Connected Succefully")
+
+	if err := CreatePhoneTable(db); err != nil {
+		fmt.Println("Error Creating Table ")
+		panic(err)
+	}
+
 	defer db.Close()
+
+}
+
+func CreatePhoneTable(db *sql.DB) error {
+
+	query := `CREATE TABLE IF NOT EXISTS phone_numbers ( 
+					id   SERIAL PRIMARY KEY,
+					value varchar(225)
+	);`
+
+	_, err := db.Exec(query)
+
+	return err
 
 }
