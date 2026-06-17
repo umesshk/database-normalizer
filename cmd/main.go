@@ -20,12 +20,12 @@ func main() {
 		log.Fatal("Error Connecting to Database", err)
 	}
 
-	err = db.ResetDatabase()
-
-	if err != nil {
-		log.Fatal("Error Reseting Database")
-	}
-
+	// err = db.ResetDatabase()
+	//
+	// if err != nil {
+	// 	log.Fatal("Error Reseting Database")
+	// }
+	//
 	if err = db.CreatePhoneTable(); err != nil {
 		log.Fatal("Error Creating Table", err)
 	}
